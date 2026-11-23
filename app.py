@@ -1,8 +1,8 @@
-import tkinter as tk
-from tkinter import messagebox
+import streamlit as st
+
+st.set_page_config(page_title="Watch Out, Element!", page_icon="🧪", layout="wide")
 
 # 1. 데이터 구조 (2차원 리스트)
-# 구조: [원소 이름, 원소 기호, 한 줄 특징, 위험도, 응급 대처법]
 elements_list = [
     [],  # 0번 인덱스 (사용 안 함)
     ["수소", "H", "우주에서 가장 가볍고 흔한 기체로 가연성이 매우 높습니다.", "상", "화상은 시원한 물, 액체 수소 동상은 미지근한 물로 처치 후 병원으로 이동하세요."],
@@ -27,91 +27,57 @@ elements_list = [
     ["칼슘", "Ca", "뼈와 치아의 주성분이며, 순수 금속 상태에서는 물과 반응해 수소를 냅니다.", "중", ""]
 ]
 
-# 2. [함수] 표에서 선택한 원소(1~20번)의 정보를 화면에 표시하는 함수
-def select_element(num):
+# 2. [함수] 선택한 원소(1~20번)의 정보를 화면에 표시하는 함수
+def display_selected_element(num):
     selected = elements_list[num]
+    st.subheader(f"🔍 [{num}번] {selected[0]} ({selected[1]})")
     
-    # 결과창 초기화
-    result_text = f"[{num}번] {selected[0]} ({selected[1]})\n\n"
-    
-    # 3. [반복문] 선택한 원소의 특징과 위험도 텍스트 구성
+    # 3. [반복문] 선택한 원소의 특징과 위험도 텍스트 표시
     labels = ["특징", "위험도"]
     values = [selected[2], selected[3]]
-    
     for idx in range(len(labels)):
-        result_text += f"• {labels[idx]}: {values[idx]}\n"
+        st.write(f"**• {labels[idx]}:** {values[idx]}")
         
-    # 4. [조건문] 위험도가 '상'인 원소라면 대처법 추가 및 글자색 강조
+    # 4. [조건문] 위험도가 '상'인 원소라면 경고 박스로 대처법 출력
     if selected[3] == "상":
-        result_text += f"\n🚨 [위험도 '상' - 피부 접촉 시 대처법]\n{selected[4]}"
-        info_label.config(text=result_text, fg="#D32F2F")  # 위험할 땐 빨간색 글씨
+        st.error(f"🚨 **[위험도 '상' - 피부 접촉 시 응급 대처법]**\n\n{selected[4]}")
+    elif selected[3] == "중":
+        st.warning("⚠️ 위험도가 '중'인 원소입니다. 취급 시 보호장구를 착용하세요.")
     else:
-        info_label.config(text=result_text, fg="#222222")  # 평상시엔 검은색 글씨
+        st.success("✅ 일상적인 환경에서 비교적 안정적인 원소입니다.")
 
-# --- GUI 화면 설정 ---
-root = tk.Tk()
-root.title("ChemSafe 20 - 주기율표 안전 가이드")
-root.geometry("620x520")
-root.configure(bg="#F5F7FA")
+# --- 메인 앱 화면 ---
+st.title("🧪 Watch Out, Element!")
+st.caption("클릭 한 번으로 확인하는 1~20번 원소의 특징과 위험도, 실험실 안전 경고 가이드!")
+st.divider()
 
-# 상단 제목
-title_label = tk.Label(root, text="원소 표에서 원소를 클릭해 보세요 (1~20번)", font=("맑은 고딕", 14, "bold"), bg="#F5F7FA", pady=15)
-title_label.pack()
+if "selected_num" not in st.session_state:
+    st.session_state.selected_num = None
 
-# 주기율표 버튼이 들어갈 프레임(격자 영역)
-table_frame = tk.Frame(root, bg="#F5F7FA")
-table_frame.pack(pady=5)
+periodic_grid = [
+    [1,  0,  0,  0,  0,  0,  0,  2],
+    [3,  4,  5,  6,  7,  8,  9,  10],
+    [11, 12, 13, 14, 15, 16, 17, 18],
+    [19, 20, 0,  0,  0,  0,  0,  0]
+]
 
-# 실제 주기율표 위치(행, 열) 좌표 (1번~20번)
-periodic_positions = {
-    1: (0, 0),                                                                                   2: (0, 7),
-    3: (1, 0), 4: (1, 1),   5: (1, 2),  6: (1, 3),  7: (1, 4),  8: (1, 5),  9: (1, 6),  10: (1, 7),
-    11: (2, 0), 12: (2, 1), 13: (2, 2), 14: (2, 3), 15: (2, 4), 16: (2, 5), 17: (2, 6), 18: (2, 7),
-    19: (3, 0), 20: (3, 1)
-}
+st.write("👇 **아래 주기율표에서 원소를 클릭해 보세요:**")
+for row in periodic_grid:
+    cols = st.columns(8)
+    for col_idx, num in enumerate(row):
+        if num != 0:
+            el_name = elements_list[num][0]
+            el_symbol = elements_list[num][1]
+            el_danger = elements_list[num][3]
+            
+            badge = "🔴" if el_danger == "상" else ("🟡" if el_danger == "중" else "🟢")
+            
+            if cols[col_idx].button(f"{badge} {num}\n**{el_symbol}**\n{el_name}", key=f"btn_{num}", use_container_width=True):
+                st.session_state.selected_num = num
 
-# 반복문으로 1번~20번 버튼을 실제 주기율표 모양대로 배치
-for num in range(1, 21):
-    row, col = periodic_positions[num]
-    el_name = elements_list[num][0]
-    el_symbol = elements_list[num][1]
-    el_danger = elements_list[num][3]
-    
-    # 위험도에 따라 버튼 배경색 다르게 지정 (상: 연분홍, 중: 연노랑, 하: 연하늘)
-    if el_danger == "상":
-        btn_color = "#FFCDD2"
-    elif el_danger == "중":
-        btn_color = "#FFF9C4"
-    else:
-        btn_color = "#E1F5FE"
-        
-    btn = tk.Button(
-        table_frame,
-        text=f"{num}\n{el_symbol}\n{el_name}",
-        width=7,
-        height=3,
-        bg=btn_color,
-        font=("맑은 고딕", 9, "bold"),
-        command=lambda n=num: select_element(n)  # 클릭 시 해당 번호로 함수 호출
-    )
-    btn.grid(row=row, column=col, padx=3, pady=3)
+st.divider()
 
-# 하단 결과 출력 박스
-result_frame = tk.Frame(root, bg="white", bd=2, relief="groove")
-result_frame.pack(fill="both", expand=True, padx=20, pady=15)
-
-info_label = tk.Label(
-    result_frame,
-    text="위 주기율표에서 원소 버튼을 클릭하면\n특징, 위험도, 응급 대처법이 이곳에 표시됩니다.",
-    font=("맑은 고딕", 11),
-    bg="white",
-    fg="#555555",
-    justify="left",
-    wraplength=540,
-    padx=15,
-    pady=15
-)
-info_label.pack(anchor="w")
-
-# 프로그램 실행 유지
-root.mainloop()
+if st.session_state.selected_num is not None:
+    display_selected_element(st.session_state.selected_num)
+else:
+    st.info("위 주기율표에서 원소 버튼을 클릭하면 상세 정보와 안전 대처법이 나타납니다.")
